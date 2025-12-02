@@ -5,11 +5,10 @@ import time
 
 from .utils import (
     THEME, clear, pause,
-    ping_host, check_tcp_port, ssh_key_works,
+    ping_host, ssh_key_works,
     get_ssh_cfg, update_ssh_cfg,
-    log_session, ensure_ssh_dir, ensure_ssh_key,
-    SSH_DIR, PRIV_KEY, PUB_KEY, SSH_CONFIG_FILE
-)
+    log_session, ensure_ssh_dir, ensure_ssh_key, PRIV_KEY, PUB_KEY, SSH_CONFIG_FILE
+) #SSH_DIR check_tcp_port,
 
 # ---------------------------------------------------------------------
 # SSH – Host Management
