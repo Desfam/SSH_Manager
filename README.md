@@ -1,76 +1,84 @@
 🗝 SSH & RDP Manager PRO
-Central terminal-based management tool for SSH & RDP connections on Windows
+Central Terminal-Based Manager for SSH & RDP Connections (Windows)
 
-This project is a full-featured interactive console dashboard that lets you manage SSH and RDP connections, run remote commands, transfer files, generate SSH configs, wake Windows machines via WOL, monitor system health, and much more.
+SSH & RDP Manager PRO is a powerful interactive console tool for managing SSH and RDP hosts, automating connections, transferring files, running remote commands, monitoring system health, sending Wake-on-LAN packets, generating SSH configs, and more.
 
-Everything runs in a clean, colored menu-driven interface with a persistent JSON configuration.
+Everything is handled through a modern menu interface with colored output and persistent JSON configuration.
 
-📌 Key Features
-🟦 SSH Manager
+📌 Features
+🟦 SSH Management
 
-Add / edit / delete SSH connections
+Add, edit, delete SSH hosts
 
-Search & filter (by name, host, tags)
+Tags & favorites
 
-Tag & favorite system
+Full-text search (name/host/tags)
 
-Online-status check (ping + key check)
+Online status: ping + SSH-key authentication check
 
-Automatic Ed25519 key generation
+Automatic Ed25519 SSH key creation
 
-Automatic public key installation (passwordless SSH)
+Automatic authorized_keys installation
 
-SCP file upload/download
+SCP-based:
 
-Folder sync (recursive)
+File upload
 
-SSH port forwarding (local tunnels)
+File download
 
-Live-Ping monitor (with latency)
+Directory sync (recursive)
 
-Mini-Top monitor (top output over SSH)
+SSH Port Forwarding (ssh -L)
 
-Full server health check (uptime, load, memory, disk)
+Live Ping Monitor
 
-Auto-generate ~/.ssh/config file
+“Mini-Top” monitor (remote top)
 
-🟩 RDP Manager
+Full health check (uptime, load, disk, memory)
 
-Add / edit / delete RDP hosts
+Auto-generate ~/.ssh/config
 
-Tag & favorite system
+🟩 RDP / Windows Management
 
-DNS resolution & port checks
+Add, edit, delete RDP hosts
 
-Start RDP sessions using MSTSC
+Tags & favorites
 
-Windows info: sessions (qwinsta), OS info (CIM)
+DNS resolution & TCP port testing
 
-Wake-on-LAN support (Magic Packet)
+Start RDP via mstsc.exe
 
-Auto-start RDP after WOL once the host is online
+Windows info:
+
+qwinsta active sessions
+
+OS info (CIM: Caption, LastBootUpTime)
+
+Wake-on-LAN (Magic Packet)
+
+Auto-RDP after WOL (wait until online & port open)
 
 PowerShell Remoting (WinRM)
 
-Automatic matching of SSH & RDP entries
+SSH–RDP host matching (same IP/host)
 
-🛠 Admin Tools
+🛠 Additional Tools
 
-ARP, DNS lookup, ping, port testing
+Network utilities (ARP, DNS, ping, port scanning)
 
-Additional network utilities (via network_tools module)
+Integrated session log viewer
 
-🖥 UI & Dashboard
+🖥 User Interface
 
 Large console layout
 
-Colorful theme (colorama)
+Color-coded theme (colorama)
 
-Last session activity panel
+Dashboard with recent activities
 
-Live status bar showing favorite SSH & RDP host status
+Live favorite host status bar
 
-Clean, modern ASCII banner
+Clean ASCII banner
 
 📁 Project Structure
 main.py
@@ -78,207 +86,141 @@ managers/
  ├── utils.py
  ├── ssh_manager.py
  ├── rdp_manager.py
- └── network_tools.py   (optional)
+ └── network_tools.py
 
-Configuration & Log Files
+📂 Configuration & Log Files
+Location	Description
+~/.ssh_manager.json	Stores all SSH & RDP entries
+~/.ssh_manager_sessions.log	History of all connections
+~/.ssh/id_ed25519	Auto-generated SSH private key
+~/.ssh/id_ed25519.pub	SSH public key
+~/.ssh/config	Auto-generated SSH config
 
-~/.ssh_manager.json → Persistent storage for SSH + RDP hosts
+The JSON structure looks like:
 
-~/.ssh_manager_sessions.log → Connection history
+{
+    "ssh": {
+        "server1": {
+            "user": "root",
+            "host": "10.0.0.10",
+            "port": "22",
+            "tags": ["lab", "proxmox"],
+            "favorite": true
+        }
+    },
+    "rdp": {
+        "Client-PC": {
+            "host": "10.0.0.50",
+            "user": "DOMAIN\\Admin",
+            "port": "3389",
+            "mac": "AA:BB:CC:DD:EE:FF",
+            "tags": ["windows"],
+            "favorite": false
+        }
+    }
+}
 
-SSH key files:
+🚀 Running the Program
+Start application
+python main.py
 
-~/.ssh/id_ed25519
+Startup sequence
 
-~/.ssh/id_ed25519.pub
+Console switches to large mode (Windows)
 
-Auto-generated SSH config:
+All hosts are ping + port-tested
 
-~/.ssh/config
+Recent activities displayed
 
-🚀 Technical Overview of Modules
-🔧 main.py – Core entrypoint
+Status bar shows favorite server health
 
-Handles:
+Main menu opens
 
-Drawing banner
+🔧 Requirements
 
-Status bar
+Windows 10/11
 
-Recent sessions dashboard
+Python 3.9+
 
-Startup health-check
+Installed tools:
 
-Main menu + routing to managers
+OpenSSH client (ssh, scp)
 
-📎 Source:
+RDP client (mstsc.exe)
 
-🧩 utils.py – Core utilities
-Configuration handling
+PowerShell (built-in)
 
-Load & save JSON config
+Python packages:
 
-Backward compatible structure
+pip install colorama
 
-Backup .bak automatic creation
+🧩 Main Modules Overview
+main.py
 
-Session logging
+Central menu system
 
-Stores: timestamp, connect type, host, extra info
+Dashboard + status bar
 
-Dashboard shows last 5 activities
+Startup health check
 
-Network checks
+utils.py
 
-Ping wrapper
+Configuration loader/saver
 
-TCP-port checks
+Logging system
 
-SSH key generation / verification
+SSH key manager
 
-Auto-create Ed25519 key
+Network checks (ping + TCP port)
 
-Check if key-auth works via BatchMode
+UI helpers (banner, clear, pause)
 
-UI helpers
+ssh_manager.py
 
-Banner, clear, pause
+All SSH functions (connections, file transfer, monitoring)
 
-Live status bar
+Key installation
 
-Startup status check
+Port forwarding
 
-📎 Source:
-
-🐧 ssh_manager.py – SSH management
-Host management
-
-Add / edit tags / delete
-
-Sorting by favorites
-
-Searching and filtering
-
-Live online-status + key-status icons
-
-Connecting
-
-Direct SSH using system ssh
-
-Logs session automatically
-
-File transfer
-
-SCP upload
-
-SCP download
-
-Directory sync (recursive)
-
-Monitoring
-
-Live-ping monitor
-
-Mini-top monitor (top over SSH every 3s)
-
-Server checks
-
-Uptime
-
-Load
-
-Memory
-
-Disk usage
-
-Others
+Server health checks
 
 SSH config generator
 
-SSH key installation (authorized_keys)
+rdp_manager.py
 
-Remote command menu (docker ps, systemctl, reboot, dmesg, etc.)
+All RDP functions
 
-📎 Source:
+Wake-on-LAN logic
 
-🪟 rdp_manager.py – RDP & Windows management
-Host management
+Windows system queries
 
-Add/edit/delete RDP entries
+PowerShell Remoting
 
-Store MAC for WOL
+Auto-matching SSH hosts
 
-Tag + favorite sorting
+📦 Packaging (Optional)
 
-RDP operations
+If you want to create an executable:
 
-Start RDP session (mstsc)
-
-DNS resolution and RDP port check
-
-Logging
-
-Windows information
-
-Sessions via qwinsta
-
-OS info via PowerShell CIM
-
-Wake-on-LAN
-
-Magic packet sending
-
-Auto-RDP launch when:
-
-Host responds to ping
-
-RDP port becomes reachable
-
-WinRM
-
-Start a PowerShell Remoting session
-
-SSH matching
-
-Automatically detects if SSH host matches same IP/hostname
-
-📎 Source:
-
-⚙️ File Locations & Purpose
-File	Purpose
-~/.ssh_manager.json	Stores SSH & RDP entries
-~/.ssh_manager_sessions.log	Saves history of all connections
-~/.ssh/id_ed25519	Private SSH key
-~/.ssh/id_ed25519.pub	Public SSH key
-~/.ssh/config	Auto-generated SSH config
-▶ How to Run
-python main.py
+pip install pyinstaller
+pyinstaller --onefile --console main.py
 
 
-On startup:
+The EXE will use all local modules automatically.
 
-Large console mode (Windows)
+🧑‍💻 Why This Tool Is Awesome
 
-Global status check (ping + ports)
+Perfect for homelabs, sysadmins, IT departments, and developers
 
-Show dashboard with last sessions
+Extremely fast and clean workflow
 
-Show main menu
+One tool for SSH, RDP, WOL, monitoring, and more
 
-💡 Why this tool is useful
+Fully offline-capable
 
-Combines SSH + RDP + WOL + Monitoring in ONE interface
+Portable — everything in a single folder
 
-Uses clean JSON config
+Clear JSON configuration
 
-Works offline
-
-Ideal for homelabs & corporate sysadmin work
-
-Extremely fast interaction via native system tools
-
-Easy to extend / customize
-
-Colored UI with clear structure
-
-Portable and Windows-friendly
+Easy to extend
