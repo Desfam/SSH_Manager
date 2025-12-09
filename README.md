@@ -1,3 +1,40 @@
+Disclaimer of Liability
+
+The provided software is distributed on an “as is” basis, without warranties of any kind, either express or implied.
+No guarantee is made regarding functionality, accuracy, security, reliability, or fitness for a particular purpose.
+
+The author/developer shall not be held liable for any direct or indirect damages, including but not limited to:
+
+loss of data
+
+system malfunctions
+
+hardware or software damage
+
+security breaches
+
+service interruptions
+
+financial loss
+
+damages resulting from improper use or misconfiguration
+
+The user is solely responsible for:
+
+proper configuration
+
+maintaining backups and security measures
+
+ensuring legal compliance
+
+adhering to internal company policies
+
+using the tool only on systems they are authorized to access
+
+By using this software, the user acknowledges and accepts this disclaimer and all associated terms.
+
+
+
 🗝 SSH & RDP Manager PRO
 Central Terminal-Based Manager for SSH & RDP Connections (Windows)
 
