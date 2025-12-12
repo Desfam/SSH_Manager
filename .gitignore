@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtualenvs
+venv/
+.venv/
+.env
+.env.*
+
+# IDEs
+.idea/
+.vscode/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+*.sqlite
+*.db
+
+# Keys / sensitive files (never commit)
+id_ed25519
+id_ed25519.pub
+*.pem
+*.key
+secrets.json
+*.secret
+
+# PyInstaller
+*.spec
