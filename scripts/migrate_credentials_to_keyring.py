@@ -5,6 +5,7 @@ It will prompt for confirmation before modifying files.
 """
 
 import json
+import sys
 from pathlib import Path
 import keyring
 
@@ -13,7 +14,7 @@ SERVICE = "ssh_manager"
 
 if not CONFIG_PATH.exists():
     print("No config file found at", CONFIG_PATH)
-    exit(0)
+    sys.exit(0)
 
 with open(CONFIG_PATH) as f:
     cfg = json.load(f)

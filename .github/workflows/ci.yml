@@ -21,4 +21,4 @@ jobs:
       - name: Format check
         run: black --check .
       - name: Run tests
-        run: pytest -q || [ $? -eq 5 ]
+        run: pytest -q --tb=short || test $? -eq 5
