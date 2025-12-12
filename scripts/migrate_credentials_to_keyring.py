@@ -3,9 +3,9 @@
 Usage: python scripts/migrate_credentials_to_keyring.py
 It will prompt for confirmation before modifying files.
 """
+
 import json
 from pathlib import Path
-import getpass
 import keyring
 
 CONFIG_PATH = Path.home() / ".ssh_manager.json"
@@ -26,16 +26,18 @@ for section in ("ssh", "rdp"):
         if isinstance(entry, dict) and entry.get("password"):
             pw = entry.get("password")
             print(f"Entry {section}/{name} has a stored password.")
-            confirm = input("Migrate this password to keyring and remove it from JSON? [y/N]: ")
+            confirm = input(
+                "Migrate this password to keyring and remove it from JSON? [y/N]: "
+            )
             if confirm.lower() == "y":
                 keyring.set_password(SERVICE, f"{section}:{name}", pw)
                 del entry["password"]
                 modified = True
 
 if modified:
-    backup = CONFIG_PATH.with_suffix('.bak.json')
+    backup = CONFIG_PATH.with_suffix(".bak.json")
     CONFIG_PATH.rename(backup)
-    with open(CONFIG_PATH, 'w') as f:
+    with open(CONFIG_PATH, "w") as f:
         json.dump(cfg, f, indent=2)
     print("Migration complete. Original backed up at", backup)
 else:

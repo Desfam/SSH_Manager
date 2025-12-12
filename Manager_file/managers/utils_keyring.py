@@ -3,6 +3,7 @@
 This module provides simple helpers to store and retrieve passwords/secret tokens
 in the OS keyring instead of keeping them in plaintext in the JSON config.
 """
+
 from pathlib import Path
 import json
 import keyring
