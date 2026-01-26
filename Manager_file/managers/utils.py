@@ -258,7 +258,14 @@ def ssh_key_works(entry):
 # ---------------------------------------------------------------------
 def ensure_ssh_dir():
     if not os.path.exists(SSH_DIR):
-        os.makedirs(SSH_DIR, exist_ok=True)
+        os.makedirs(SSH_DIR, mode=0o700, exist_ok=True)
+    else:
+        # Ensure existing directory has secure permissions
+        if os.name != 'nt':  # Not Windows
+            try:
+                os.chmod(SSH_DIR, 0o700)
+            except Exception:
+                pass
 
 
 def ensure_ssh_key():

@@ -1,7 +1,7 @@
 # managers/network_tools.py
 import subprocess
 
-from .utils import THEME, clear, pause, check_tcp_port
+from .utils import THEME, clear, pause, check_tcp_port, validate_hostname, validate_port
 
 def tools_menu():
     while True:
@@ -24,14 +24,22 @@ def tools_menu():
             pause()
         elif opt == "2":
             host = input("Hostname oder IP: ").strip()
+            if not validate_hostname(host):
+                print(THEME["err"] + "❌ Ungültiger Hostname/IP.")
+                pause()
+                continue
             subprocess.call(["nslookup", host])
             print()
             pause()
         elif opt == "3":
             host = input("Host: ").strip()
             port = input("Port: ").strip()
-            if not port.isdigit():
-                print(THEME["err"] + "Ungültiger Port.")
+            if not validate_hostname(host):
+                print(THEME["err"] + "❌ Ungültiger Hostname/IP.")
+                pause()
+                continue
+            if not validate_port(port):
+                print(THEME["err"] + "❌ Ungültiger Port.")
                 pause()
                 continue
             ok = check_tcp_port(host, int(port), timeout=2)
@@ -42,6 +50,10 @@ def tools_menu():
             pause()
         elif opt == "4":
             host = input("Host: ").strip()
+            if not validate_hostname(host):
+                print(THEME["err"] + "❌ Ungültiger Hostname/IP.")
+                pause()
+                continue
             print(THEME["info"] + f"\nPing 10x {host}:\n")
             param = "-n" if hasattr(subprocess, "CREATE_NEW_CONSOLE") else "-c"
             subprocess.call(["ping", param, "10", host])
