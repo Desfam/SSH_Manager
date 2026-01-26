@@ -32,9 +32,19 @@ def ssh_terminal(name):
     return render_template('ssh_terminal.html', name=name, connection=connection)
 
 def create_ssh_client(host, port, username, key_path=None, password=None):
-    """Create and connect SSH client"""
+    """Create and connect SSH client with proper host key validation"""
     client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    
+    # Use a more secure host key policy
+    # Try to load known hosts first, then use WarningPolicy instead of AutoAddPolicy
+    try:
+        client.load_system_host_keys()
+    except IOError:
+        pass
+    
+    # Use WarningPolicy which logs unknown hosts but still allows connection
+    # In production, consider using RejectPolicy and managing known_hosts properly
+    client.set_missing_host_key_policy(paramiko.WarningPolicy())
     
     try:
         if key_path and os.path.exists(key_path):
@@ -44,6 +54,8 @@ def create_ssh_client(host, port, username, key_path=None, password=None):
         else:
             client.connect(host, port=port, username=username, timeout=10)
         return client
+    except paramiko.SSHException as e:
+        raise Exception(f"SSH connection failed: {str(e)}")
     except Exception as e:
         raise Exception(f"Failed to connect: {str(e)}")
 

@@ -134,12 +134,40 @@ The agent will run on port 9876 by default.
 
 ## Security Considerations
 
-- Always change default credentials
+### Authentication & Access
+- Always change default credentials immediately
+- Use strong, unique passwords
+- Implement SSH key-based authentication when possible
+- Consider adding multi-factor authentication for production
+
+### Network Security
 - Use HTTPS in production (configure reverse proxy)
-- Set strong SECRET_KEY in production
+- Set strong SECRET_KEY environment variable
 - Restrict network access to the web interface
-- Use SSH keys instead of passwords for SSH connections
+- Configure firewall rules appropriately
+- Consider using VPN for remote access
+
+### SSH Connections
+- The web terminal uses WarningPolicy for SSH host keys
+- In production, consider implementing RejectPolicy with proper known_hosts management
+- Use SSH keys instead of passwords whenever possible
+- Regularly rotate SSH keys
+- Review SSH configurations regularly
+
+### Agent Deployment
 - Review agent permissions before deployment
+- Only deploy agents on trusted hosts
+- Use firewall rules to restrict agent port access
+- Monitor agent activity and logs
+- Consider network segmentation
+
+### General Best Practices
+- Keep all dependencies updated
+- Regular security audits
+- Monitor logs for suspicious activity
+- Regular backups of configuration
+- Implement rate limiting for API endpoints
+- Use production WSGI server (not Flask development server)
 
 ## Architecture
 
