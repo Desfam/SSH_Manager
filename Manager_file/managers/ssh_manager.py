@@ -227,37 +227,60 @@ def ssh_setup_ssh_key():
 
     print(THEME["info"] + f"\n➡ Installiere Public-Key auf {user}@{host} ...\n")
 
-    # Read the public key content
+    # Use ssh-copy-id if available, otherwise fallback to manual method
+    # ssh-copy-id is the standard, secure way to install SSH keys
     try:
-        with open(PUB_KEY, 'r') as f:
-            pub_key_content = f.read().strip()
-    except Exception as e:
-        print(THEME["err"] + f"❌ Fehler beim Lesen des Public Keys: {e}")
-        pause()
-        return
+        cmd = [
+            "ssh-copy-id",
+            "-i", PUB_KEY,
+            "-p", port,
+            f"{user}@{host}"
+        ]
+        result = subprocess.run(cmd)
+        
+        if result.returncode == 0:
+            print(THEME["ok"] + "\n✔ Passwortfreier Login sollte jetzt funktionieren.\n")
+        else:
+            print(THEME["err"] + "\n❌ Fehler beim Key-Setup.\n")
+    except FileNotFoundError:
+        # Fallback if ssh-copy-id is not available
+        print(THEME["warn"] + "ssh-copy-id nicht gefunden, verwende manuelle Methode...\n")
+        
+        # Read the public key content
+        try:
+            with open(PUB_KEY, 'r') as f:
+                pub_key_content = f.read().strip()
+        except Exception as e:
+            print(THEME["err"] + f"❌ Fehler beim Lesen des Public Keys: {e}")
+            pause()
+            return
 
-    # Use safer approach without shell=True
-    # Create the command to append the key to authorized_keys
-    remote_cmd = (
-        "mkdir -p ~/.ssh && "
-        "touch ~/.ssh/authorized_keys && "
-        "chmod 700 ~/.ssh && "
-        "chmod 600 ~/.ssh/authorized_keys && "
-        f"echo '{pub_key_content}' >> ~/.ssh/authorized_keys"
-    )
+        # Create a temporary script to safely handle the key installation
+        # This avoids command injection through the key content
+        install_script = (
+            "umask 077 && "
+            "mkdir -p ~/.ssh && "
+            "touch ~/.ssh/authorized_keys && "
+            "chmod 700 ~/.ssh && "
+            "chmod 600 ~/.ssh/authorized_keys && "
+            'read key && echo "$key" >> ~/.ssh/authorized_keys'
+        )
+        
+        cmd = [
+            "ssh",
+            "-p", port,
+            f"{user}@{host}",
+            install_script
+        ]
+        
+        # Pass the key through stdin to avoid shell injection
+        result = subprocess.run(cmd, input=pub_key_content, text=True)
+        
+        if result.returncode == 0:
+            print(THEME["ok"] + "\n✔ Passwortfreier Login sollte jetzt funktionieren.\n")
+        else:
+            print(THEME["err"] + "\n❌ Fehler beim Key-Setup.\n")
     
-    cmd = [
-        "ssh",
-        "-p", port,
-        f"{user}@{host}",
-        remote_cmd
-    ]
-    
-    result = subprocess.run(cmd)
-    if result.returncode == 0:
-        print(THEME["ok"] + "\n✔ Passwortfreier Login sollte jetzt funktionieren.\n")
-    else:
-        print(THEME["err"] + "\n❌ Fehler beim Key-Setup.\n")
     pause()
 
 

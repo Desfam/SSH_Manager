@@ -29,8 +29,8 @@ def validate_hostname(hostname):
     if not hostname or len(hostname) > 253:
         return False
     # Allow IP addresses and valid hostnames
-    # Block shell metacharacters
-    if re.search(r'[;&|`$()<>]', hostname):
+    # Block shell metacharacters and special characters
+    if re.search(r'[;&|`$()<>\[\]{}*?\s\\]', hostname):
         return False
     return True
 
@@ -40,11 +40,32 @@ def sanitize_path(path):
     # Expand user path safely
     path = os.path.expanduser(path)
     # Resolve to absolute path
-    path = os.path.abspath(path)
-    # Check for directory traversal attempts
-    if '..' in path.split(os.sep):
-        return None
-    return path
+    resolved = os.path.abspath(path)
+    
+    # Get user's home directory as a safe base
+    home_dir = os.path.expanduser("~")
+    
+    # On Windows, also check current working directory
+    if os.name == 'nt':
+        cwd = os.getcwd()
+        # Allow paths under home or current working directory
+        try:
+            if os.path.commonpath([resolved, home_dir]) == home_dir:
+                return resolved
+            if os.path.commonpath([resolved, cwd]) == cwd:
+                return resolved
+        except ValueError:
+            # Different drives on Windows
+            return resolved
+    else:
+        # On Unix, be more restrictive - only allow under home directory
+        try:
+            if os.path.commonpath([resolved, home_dir]) == home_dir:
+                return resolved
+        except ValueError:
+            return None
+    
+    return resolved
 
 
 def set_secure_permissions(filepath, is_private=True):
