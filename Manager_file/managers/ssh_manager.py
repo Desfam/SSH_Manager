@@ -413,6 +413,18 @@ def ssh_file_transfer_menu():
                 pause()
                 continue
             
+            # Check if parent directory exists and is writable
+            parent_dir = os.path.dirname(local_safe)
+            if parent_dir and not os.path.exists(parent_dir):
+                print(THEME["err"] + "❌ Übergeordnetes Verzeichnis existiert nicht.")
+                pause()
+                continue
+            
+            if parent_dir and not os.access(parent_dir, os.W_OK):
+                print(THEME["err"] + "❌ Keine Schreibrechte für das Zielverzeichnis.")
+                pause()
+                continue
+            
             cmd = ["scp", "-P", str(port), f"{user}@{host}:{remote}", local_safe]
             print(THEME["ok"] + "\n→ Download läuft...\n")
             subprocess.call(cmd)

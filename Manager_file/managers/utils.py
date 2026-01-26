@@ -29,8 +29,9 @@ def validate_hostname(hostname):
     if not hostname or len(hostname) > 253:
         return False
     # Allow IP addresses and valid hostnames
-    # Block shell metacharacters and special characters
-    if re.search(r'[;&|`$()<>\[\]{}*?\s\\]', hostname):
+    # Block shell metacharacters and dangerous whitespace characters
+    # Note: Normal hostnames/IPs shouldn't have any whitespace
+    if re.search(r'[;&|`$()<>\[\]{}*?\t\n\r\\]', hostname):
         return False
     return True
 
@@ -55,17 +56,17 @@ def sanitize_path(path):
             if os.path.commonpath([resolved, cwd]) == cwd:
                 return resolved
         except ValueError:
-            # Different drives on Windows
+            # Different drives on Windows - be more permissive on Windows
             return resolved
+        return None
     else:
         # On Unix, be more restrictive - only allow under home directory
         try:
             if os.path.commonpath([resolved, home_dir]) == home_dir:
                 return resolved
         except ValueError:
-            return None
-    
-    return resolved
+            pass
+        return None
 
 
 def set_secure_permissions(filepath, is_private=True):
