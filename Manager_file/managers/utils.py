@@ -296,12 +296,18 @@ def ensure_ssh_key():
     if not os.path.exists(PRIV_KEY):
         print(THEME["info"] + "➡ Kein SSH-Key gefunden – erstelle neuen Ed25519-Key...")
         # Use list instead of shell=True for security
-        subprocess.run([
+        result = subprocess.run([
             "ssh-keygen",
             "-t", "ed25519",
             "-f", PRIV_KEY,
             "-N", ""
-        ])
+        ], capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            print(THEME["err"] + "❌ Fehler beim Erstellen des SSH-Keys:")
+            print(result.stderr)
+            return False
+            
         print(THEME["ok"] + "✔ SSH-Key erzeugt.")
         # Set secure permissions on private key
         set_secure_permissions(PRIV_KEY, is_private=True)

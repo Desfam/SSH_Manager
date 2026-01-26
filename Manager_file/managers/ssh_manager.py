@@ -236,12 +236,12 @@ def ssh_setup_ssh_key():
             "-p", port,
             f"{user}@{host}"
         ]
-        result = subprocess.run(cmd)
+        result = subprocess.run(cmd, capture_output=False)
         
         if result.returncode == 0:
             print(THEME["ok"] + "\n✔ Passwortfreier Login sollte jetzt funktionieren.\n")
         else:
-            print(THEME["err"] + "\n❌ Fehler beim Key-Setup.\n")
+            print(THEME["err"] + "\n❌ Fehler beim Key-Setup (Exit Code: " + str(result.returncode) + ").\n")
     except FileNotFoundError:
         # Fallback if ssh-copy-id is not available
         print(THEME["warn"] + "ssh-copy-id nicht gefunden, verwende manuelle Methode...\n")
@@ -280,12 +280,12 @@ def ssh_setup_ssh_key():
         ]
         
         # Pass the key through stdin to avoid shell injection
-        result = subprocess.run(cmd, input=pub_key_content, text=True)
+        result = subprocess.run(cmd, input=pub_key_content, text=True, capture_output=False)
         
         if result.returncode == 0:
             print(THEME["ok"] + "\n✔ Passwortfreier Login sollte jetzt funktionieren.\n")
         else:
-            print(THEME["err"] + "\n❌ Fehler beim Key-Setup.\n")
+            print(THEME["err"] + "\n❌ Fehler beim Key-Setup (Exit Code: " + str(result.returncode) + ").\n")
     
     pause()
 
@@ -396,6 +396,9 @@ def ssh_file_transfer_menu():
             local = input("Lokale Datei: ").strip()
             remote = input("Remote Pfad: ").strip()
             
+            # Note: Remote paths are not validated as users need full access to their own systems
+            # Local path validation prevents directory traversal on this machine
+            
             # Validate local path
             local_safe = sanitize_path(local)
             if not local_safe or not os.path.exists(local_safe):
@@ -411,6 +414,9 @@ def ssh_file_transfer_menu():
         elif opt == "2":
             remote = input("Remote Datei: ").strip()
             local = input("Lokaler Pfad: ").strip()
+            
+            # Note: Remote paths are not validated as users need full access to their own systems
+            # Local path validation prevents directory traversal on this machine
             
             # Validate local path
             local_safe = sanitize_path(local)
@@ -443,6 +449,9 @@ def ssh_file_transfer_menu():
         elif opt == "3":
             local = input("Lokaler Ordner: ").strip()
             remote = input("Remote Ordner: ").strip()
+            
+            # Note: Remote paths are not validated as users need full access to their own systems
+            # Local path validation prevents directory traversal on this machine
             
             # Validate local path
             local_safe = sanitize_path(local)
