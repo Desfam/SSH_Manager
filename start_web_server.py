@@ -51,12 +51,21 @@ def main():
     print()
     print("⚠️  Please change the default password after first login!")
     print()
+    print("⚠️  Note: This is a development server. For production use,")
+    print("          deploy with a production WSGI server like gunicorn:")
+    print("          gunicorn -k eventlet -w 1 web_server.app:app")
+    print()
     print("Press Ctrl+C to stop the server")
     print("=" * 60)
     print()
     
     try:
-        socketio.run(app, host=host, port=port, debug=debug, allow_unsafe_werkzeug=True)
+        # Only allow unsafe werkzeug in debug mode for development
+        if debug:
+            print("⚠️  Running in DEBUG mode - DO NOT use in production!")
+            socketio.run(app, host=host, port=port, debug=debug, allow_unsafe_werkzeug=True)
+        else:
+            socketio.run(app, host=host, port=port, debug=debug)
     except KeyboardInterrupt:
         print()
         print("Shutting down server...")

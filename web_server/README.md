@@ -52,6 +52,46 @@ Default credentials:
 
 **⚠️ Change the default password immediately after first login!**
 
+**⚠️ IMPORTANT:** The development server is NOT suitable for production use. See "Production Deployment" below.
+
+## Production Deployment
+
+For production environments, use a proper WSGI server:
+
+### Using Gunicorn (Recommended)
+
+1. Install gunicorn and eventlet:
+```bash
+pip install gunicorn eventlet
+```
+
+2. Run with gunicorn:
+```bash
+gunicorn -k eventlet -w 1 --bind 0.0.0.0:5000 web_server.app:app
+```
+
+### Using uWSGI
+
+1. Install uWSGI:
+```bash
+pip install uwsgi
+```
+
+2. Run with uWSGI:
+```bash
+uwsgi --http :5000 --gevent 1000 --http-websockets --module web_server.app:app
+```
+
+### Production Checklist
+- [ ] Set a strong SECRET_KEY environment variable
+- [ ] Disable DEBUG mode (DEBUG=False)
+- [ ] Use HTTPS (configure reverse proxy)
+- [ ] Configure firewall rules
+- [ ] Set up proper logging
+- [ ] Regular security updates
+- [ ] Strong authentication credentials
+- [ ] Regular backups of configuration
+
 ## Configuration
 
 Environment variables:

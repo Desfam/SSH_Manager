@@ -7,3 +7,9 @@ paramiko>=3.4.0
 psutil>=5.9.0
 werkzeug>=3.0.0
 python-socketio>=5.10.0
+
+# Optional: Production WSGI servers
+# Uncomment the one you want to use:
+# gunicorn>=21.2.0
+# eventlet>=0.33.0  # Required for gunicorn WebSocket support
+# uwsgi>=2.0.0

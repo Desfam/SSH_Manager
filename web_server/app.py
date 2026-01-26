@@ -72,4 +72,11 @@ if __name__ == '__main__':
     debug = os.environ.get('DEBUG', 'False').lower() == 'true'
     
     print(f"Starting SSH & RDP Web Manager on {host}:{port}")
-    socketio.run(app, host=host, port=port, debug=debug, allow_unsafe_werkzeug=True)
+    
+    # Only allow unsafe werkzeug in debug mode for development
+    # In production, use a proper WSGI server like gunicorn
+    if debug:
+        print("⚠️  WARNING: Running in DEBUG mode with unsafe werkzeug - DO NOT use in production!")
+        socketio.run(app, host=host, port=port, debug=debug, allow_unsafe_werkzeug=True)
+    else:
+        socketio.run(app, host=host, port=port, debug=debug)
