@@ -7,6 +7,7 @@ from .utils import (
     ping_host, check_tcp_port,
     get_rdp_cfg, update_rdp_cfg,
     get_ssh_cfg, log_session,
+    validate_port, validate_hostname,
 )
 
 # ---------------------------------------------------------------------
@@ -35,6 +36,17 @@ def rdp_add_connection():
     mac = input(THEME["info"] + "MAC für Wake-on-LAN (optional, AA:BB:CC:DD:EE:FF): ").strip()
     tags_raw = input(THEME["info"] + "Tags (z.B. windows,client): ").strip()
     favorite_raw = input(THEME["info"] + "Favorit? (j/N): ").strip().lower()
+
+    # Validate inputs
+    if not validate_hostname(host):
+        print(THEME["err"] + "❌ Ungültiger Hostname/IP.")
+        pause()
+        return
+    
+    if not validate_port(port):
+        print(THEME["err"] + "❌ Ungültiger Port (muss zwischen 1-65535 sein).")
+        pause()
+        return
 
     tags = [t.strip() for t in tags_raw.split(",") if t.strip()] if tags_raw else []
     favorite = favorite_raw == "j"

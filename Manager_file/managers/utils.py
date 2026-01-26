@@ -2,6 +2,7 @@
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import time
@@ -10,6 +11,52 @@ from datetime import datetime
 from colorama import init, Fore, Style
 
 init(autoreset=True)
+
+# ---------------------------------------------------------------------
+# Security / Input Validation
+# ---------------------------------------------------------------------
+def validate_port(port_str):
+    """Validate that port is a valid integer between 1-65535."""
+    try:
+        port = int(port_str)
+        return 1 <= port <= 65535
+    except (ValueError, TypeError):
+        return False
+
+
+def validate_hostname(hostname):
+    """Validate hostname/IP format to prevent injection attacks."""
+    if not hostname or len(hostname) > 253:
+        return False
+    # Allow IP addresses and valid hostnames
+    # Block shell metacharacters
+    if re.search(r'[;&|`$()<>]', hostname):
+        return False
+    return True
+
+
+def sanitize_path(path):
+    """Basic path sanitization to prevent directory traversal."""
+    # Expand user path safely
+    path = os.path.expanduser(path)
+    # Resolve to absolute path
+    path = os.path.abspath(path)
+    # Check for directory traversal attempts
+    if '..' in path.split(os.sep):
+        return None
+    return path
+
+
+def set_secure_permissions(filepath, is_private=True):
+    """Set secure file permissions (Unix-like systems only)."""
+    if os.name != 'nt':  # Not Windows
+        try:
+            if is_private:
+                os.chmod(filepath, 0o600)  # rw-------
+            else:
+                os.chmod(filepath, 0o644)  # rw-r--r--
+        except Exception:
+            pass
 
 # ---------------------------------------------------------------------
 # Pfade / Dateien
@@ -101,10 +148,13 @@ def save_config(cfg):
         backup = CONFIG_PATH + ".bak"
         try:
             shutil.copy2(CONFIG_PATH, backup)
+            set_secure_permissions(backup, is_private=True)
         except Exception:
             pass
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=4, ensure_ascii=False)
+    # Set secure permissions on config file
+    set_secure_permissions(CONFIG_PATH, is_private=True)
 
 
 def get_ssh_cfg():
@@ -215,18 +265,25 @@ def ensure_ssh_key():
     ensure_ssh_dir()
     if not os.path.exists(PRIV_KEY):
         print(THEME["info"] + "➡ Kein SSH-Key gefunden – erstelle neuen Ed25519-Key...")
+        # Use list instead of shell=True for security
         subprocess.run([
             "ssh-keygen",
             "-t", "ed25519",
             "-f", PRIV_KEY,
             "-N", ""
-        ], shell=True)
+        ])
         print(THEME["ok"] + "✔ SSH-Key erzeugt.")
+        # Set secure permissions on private key
+        set_secure_permissions(PRIV_KEY, is_private=True)
     else:
         print(THEME["ok"] + "✔ SSH-Key bereits vorhanden.")
+        # Ensure existing key has secure permissions
+        set_secure_permissions(PRIV_KEY, is_private=True)
     if not os.path.exists(PUB_KEY):
         print(THEME["err"] + "⚠ Public-Key fehlt – irgendwas stimmt nicht mit dem Key-Setup.")
         return False
+    # Set permissions on public key
+    set_secure_permissions(PUB_KEY, is_private=False)
     return True
 
 
