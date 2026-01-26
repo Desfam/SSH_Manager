@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}SSH Terminal - {{ name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+{% endblock %}
+
+{% block content %}
+<div class="terminal-page">
+    <div class="terminal-header">
+        <h3>SSH Terminal: {{ name }}</h3>
+        <p>{{ connection.user }}@{{ connection.host }}:{{ connection.port }}</p>
+        <button class="btn btn-danger" onclick="disconnectTerminal()">Disconnect</button>
+    </div>
+    
+    <div id="terminal" class="terminal-container"></div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script>
+    const connectionName = "{{ name }}";
+    const sessionId = 'session-' + Date.now();
+    
+    // Initialize terminal
+    const term = new Terminal({
+        cursorBlink: true,
+        fontSize: 14,
+        fontFamily: 'Consolas, Monaco, monospace',
+        theme: {
+            background: '#1e1e1e',
+            foreground: '#f0f0f0'
+        }
+    });
+    
+    const fitAddon = new FitAddon.FitAddon();
+    term.loadAddon(fitAddon);
+    term.open(document.getElementById('terminal'));
+    fitAddon.fit();
+    
+    // Initialize Socket.IO
+    const socket = io();
+    
+    socket.on('connect', function() {
+        console.log('Socket connected');
+        socket.emit('ssh_connect', {
+            name: connectionName,
+            session_id: sessionId
+        });
+    });
+    
+    socket.on('ssh_connected', function(data) {
+        term.writeln('\r\n✓ Connected to ' + connectionName + '\r\n');
+    });
+    
+    socket.on('ssh_output', function(data) {
+        term.write(data.data);
+    });
+    
+    socket.on('ssh_error', function(data) {
+        term.writeln('\r\n✗ Error: ' + data.error + '\r\n');
+    });
+    
+    socket.on('ssh_disconnected', function() {
+        term.writeln('\r\n✗ Disconnected\r\n');
+    });
+    
+    // Send input to server
+    term.onData(function(data) {
+        socket.emit('ssh_input', {
+            session_id: sessionId,
+            data: data
+        });
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', function() {
+        fitAddon.fit();
+        socket.emit('ssh_resize', {
+            session_id: sessionId,
+            width: term.cols,
+            height: term.rows
+        });
+    });
+    
+    function disconnectTerminal() {
+        socket.emit('ssh_disconnect_session', {
+            session_id: sessionId
+        });
+        window.location.href = "{{ url_for('connections.dashboard') }}";
+    }
+</script>
+{% endblock %}

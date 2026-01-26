@@ -34,5 +34,9 @@ id_ed25519.pub
 secrets.json
 *.secret
 
+# Web server user data
+.ssh_manager_users.json
+.ssh_manager_agents.json
+
 # PyInstaller
 *.spec

@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - SSH & RDP Manager{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h2>Connection Dashboard</h2>
+    
+    <div class="stats">
+        <div class="stat-card">
+            <h3>{{ ssh_connections|length }}</h3>
+            <p>SSH Connections</p>
+        </div>
+        <div class="stat-card">
+            <h3>{{ rdp_connections|length }}</h3>
+            <p>RDP Connections</p>
+        </div>
+    </div>
+    
+    <div class="connections-section">
+        <div class="connection-type">
+            <div class="section-header">
+                <h3>🔵 SSH Connections</h3>
+                <button class="btn btn-success" onclick="showAddSSHModal()">+ Add SSH</button>
+            </div>
+            
+            <div class="connections-grid">
+                {% if ssh_connections %}
+                    {% for name, conn in ssh_connections.items() %}
+                    <div class="connection-card" data-type="ssh" data-name="{{ name }}">
+                        <div class="card-header">
+                            <h4>{{ name }}</h4>
+                            {% if conn.favorite %}
+                            <span class="badge badge-warning">⭐ Favorite</span>
+                            {% endif %}
+                        </div>
+                        <div class="card-body">
+                            <p><strong>User:</strong> {{ conn.user }}</p>
+                            <p><strong>Host:</strong> {{ conn.host }}</p>
+                            <p><strong>Port:</strong> {{ conn.port }}</p>
+                            {% if conn.tags %}
+                            <div class="tags">
+                                {% for tag in conn.tags %}
+                                <span class="tag">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn btn-primary btn-sm" onclick="connectSSH('{{ name }}')">Connect</button>
+                            <button class="btn btn-info btn-sm" onclick="editConnection('ssh', '{{ name }}')">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteConnection('ssh', '{{ name }}')">Delete</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="empty-state">No SSH connections configured. Add one to get started!</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="connection-type">
+            <div class="section-header">
+                <h3>🟢 RDP Connections</h3>
+                <button class="btn btn-success" onclick="showAddRDPModal()">+ Add RDP</button>
+            </div>
+            
+            <div class="connections-grid">
+                {% if rdp_connections %}
+                    {% for name, conn in rdp_connections.items() %}
+                    <div class="connection-card" data-type="rdp" data-name="{{ name }}">
+                        <div class="card-header">
+                            <h4>{{ name }}</h4>
+                            {% if conn.favorite %}
+                            <span class="badge badge-warning">⭐ Favorite</span>
+                            {% endif %}
+                        </div>
+                        <div class="card-body">
+                            <p><strong>User:</strong> {{ conn.user }}</p>
+                            <p><strong>Host:</strong> {{ conn.host }}</p>
+                            <p><strong>Port:</strong> {{ conn.port }}</p>
+                            {% if conn.tags %}
+                            <div class="tags">
+                                {% for tag in conn.tags %}
+                                <span class="tag">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="card-actions">
+                            <button class="btn btn-info btn-sm" onclick="editConnection('rdp', '{{ name }}')">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteConnection('rdp', '{{ name }}')">Delete</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="empty-state">No RDP connections configured. Add one to get started!</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for adding SSH connection -->
+<div id="addSSHModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('addSSHModal')">&times;</span>
+        <h3>Add SSH Connection</h3>
+        <form id="addSSHForm">
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" name="name" required>
+            </div>
+            <div class="form-group">
+                <label>User</label>
+                <input type="text" name="user" required>
+            </div>
+            <div class="form-group">
+                <label>Host</label>
+                <input type="text" name="host" required>
+            </div>
+            <div class="form-group">
+                <label>Port</label>
+                <input type="number" name="port" value="22" required>
+            </div>
+            <div class="form-group">
+                <label>Tags (comma separated)</label>
+                <input type="text" name="tags">
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="favorite">
+                    Favorite
+                </label>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Connection</button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal for adding RDP connection -->
+<div id="addRDPModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('addRDPModal')">&times;</span>
+        <h3>Add RDP Connection</h3>
+        <form id="addRDPForm">
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" name="name" required>
+            </div>
+            <div class="form-group">
+                <label>User</label>
+                <input type="text" name="user" required>
+            </div>
+            <div class="form-group">
+                <label>Host</label>
+                <input type="text" name="host" required>
+            </div>
+            <div class="form-group">
+                <label>Port</label>
+                <input type="number" name="port" value="3389" required>
+            </div>
+            <div class="form-group">
+                <label>MAC Address (for WOL)</label>
+                <input type="text" name="mac">
+            </div>
+            <div class="form-group">
+                <label>Tags (comma separated)</label>
+                <input type="text" name="tags">
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" name="favorite">
+                    Favorite
+                </label>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Connection</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}
