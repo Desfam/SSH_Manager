@@ -56,8 +56,9 @@ def sanitize_path(path):
             if os.path.commonpath([resolved, cwd]) == cwd:
                 return resolved
         except ValueError:
-            # Different drives on Windows - be more permissive on Windows
-            return resolved
+            # Different drives on Windows - still require it to be under a known safe path
+            # Don't allow arbitrary paths on different drives for security
+            pass
         return None
     else:
         # On Unix, be more restrictive - only allow under home directory

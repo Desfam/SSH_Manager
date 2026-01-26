@@ -255,8 +255,14 @@ def ssh_setup_ssh_key():
             pause()
             return
 
-        # Create a temporary script to safely handle the key installation
-        # This avoids command injection through the key content
+        # Create a static script to safely handle the key installation
+        # This script is hardcoded with no user input - it reads the key from stdin
+        # This completely avoids command injection through the key content
+        # The script:
+        # 1. Sets secure umask
+        # 2. Creates .ssh directory with proper permissions
+        # 3. Creates authorized_keys with proper permissions  
+        # 4. Reads key from stdin (via 'read key') and appends to authorized_keys
         install_script = (
             "umask 077 && "
             "mkdir -p ~/.ssh && "
@@ -415,12 +421,16 @@ def ssh_file_transfer_menu():
             
             # Check if parent directory exists and is writable
             parent_dir = os.path.dirname(local_safe)
-            if parent_dir and not os.path.exists(parent_dir):
+            # Handle case where file is in current directory (parent_dir is empty)
+            if not parent_dir:
+                parent_dir = os.getcwd()
+            
+            if not os.path.exists(parent_dir):
                 print(THEME["err"] + "❌ Übergeordnetes Verzeichnis existiert nicht.")
                 pause()
                 continue
             
-            if parent_dir and not os.access(parent_dir, os.W_OK):
+            if not os.access(parent_dir, os.W_OK):
                 print(THEME["err"] + "❌ Keine Schreibrechte für das Zielverzeichnis.")
                 pause()
                 continue
