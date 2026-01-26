@@ -7,7 +7,8 @@ from .utils import (
     THEME, clear, pause,
     ping_host, ssh_key_works,
     get_ssh_cfg, update_ssh_cfg,
-    log_session, ensure_ssh_dir, ensure_ssh_key, PRIV_KEY, PUB_KEY, SSH_CONFIG_FILE
+    log_session, ensure_ssh_dir, ensure_ssh_key, PRIV_KEY, PUB_KEY, SSH_CONFIG_FILE,
+    validate_port, validate_hostname, sanitize_path, set_secure_permissions
 ) #SSH_DIR check_tcp_port,
 
 # ---------------------------------------------------------------------
@@ -23,6 +24,17 @@ def ssh_add_connection():
     port = input(THEME["info"] + "Port (default 22): ").strip() or "22"
     tags_raw = input(THEME["info"] + "Tags (z.B. proxmox,lab): ").strip()
     favorite_raw = input(THEME["info"] + "Favorit? (j/N): ").strip().lower()
+
+    # Validate inputs
+    if not validate_hostname(host):
+        print(THEME["err"] + "❌ Ungültiger Hostname/IP.")
+        pause()
+        return
+    
+    if not validate_port(port):
+        print(THEME["err"] + "❌ Ungültiger Port (muss zwischen 1-65535 sein).")
+        pause()
+        return
 
     tags = [t.strip() for t in tags_raw.split(",") if t.strip()] if tags_raw else []
     favorite = favorite_raw == "j"
@@ -215,13 +227,66 @@ def ssh_setup_ssh_key():
 
     print(THEME["info"] + f"\n➡ Installiere Public-Key auf {user}@{host} ...\n")
 
-    cmd = (
-        f'type "{PUB_KEY}" | ssh -p {port} {user}@{host} '
-        '"mkdir -p ~/.ssh && touch ~/.ssh/authorized_keys && '
-        'cat >> ~/.ssh/authorized_keys"'
-    )
-    subprocess.run(cmd, shell=True)
-    print(THEME["ok"] + "\n✔ Passwortfreier Login sollte jetzt funktionieren.\n")
+    # Use ssh-copy-id if available, otherwise fallback to manual method
+    # ssh-copy-id is the standard, secure way to install SSH keys
+    try:
+        cmd = [
+            "ssh-copy-id",
+            "-i", PUB_KEY,
+            "-p", port,
+            f"{user}@{host}"
+        ]
+        result = subprocess.run(cmd, capture_output=False)
+        
+        if result.returncode == 0:
+            print(THEME["ok"] + "\n✔ Passwortfreier Login sollte jetzt funktionieren.\n")
+        else:
+            print(THEME["err"] + "\n❌ Fehler beim Key-Setup (Exit Code: " + str(result.returncode) + ").\n")
+    except FileNotFoundError:
+        # Fallback if ssh-copy-id is not available
+        print(THEME["warn"] + "ssh-copy-id nicht gefunden, verwende manuelle Methode...\n")
+        
+        # Read the public key content
+        try:
+            with open(PUB_KEY, 'r') as f:
+                pub_key_content = f.read().strip()
+        except Exception as e:
+            print(THEME["err"] + f"❌ Fehler beim Lesen des Public Keys: {e}")
+            pause()
+            return
+
+        # Create a static script to safely handle the key installation
+        # This script is hardcoded with no user input - it reads the key from stdin
+        # This completely avoids command injection through the key content
+        # The script:
+        # 1. Sets secure umask
+        # 2. Creates .ssh directory with proper permissions
+        # 3. Creates authorized_keys with proper permissions  
+        # 4. Reads key from stdin (via 'read key') and appends to authorized_keys
+        install_script = (
+            "umask 077 && "
+            "mkdir -p ~/.ssh && "
+            "touch ~/.ssh/authorized_keys && "
+            "chmod 700 ~/.ssh && "
+            "chmod 600 ~/.ssh/authorized_keys && "
+            'read key && echo "$key" >> ~/.ssh/authorized_keys'
+        )
+        
+        cmd = [
+            "ssh",
+            "-p", port,
+            f"{user}@{host}",
+            install_script
+        ]
+        
+        # Pass the key through stdin to avoid shell injection
+        result = subprocess.run(cmd, input=pub_key_content, text=True, capture_output=False)
+        
+        if result.returncode == 0:
+            print(THEME["ok"] + "\n✔ Passwortfreier Login sollte jetzt funktionieren.\n")
+        else:
+            print(THEME["err"] + "\n❌ Fehler beim Key-Setup (Exit Code: " + str(result.returncode) + ").\n")
+    
     pause()
 
 
@@ -330,7 +395,18 @@ def ssh_file_transfer_menu():
         if opt == "1":
             local = input("Lokale Datei: ").strip()
             remote = input("Remote Pfad: ").strip()
-            cmd = ["scp", "-P", str(port), local, f"{user}@{host}:{remote}"]
+            
+            # Note: Remote paths are not validated as users need full access to their own systems
+            # Local path validation prevents directory traversal on this machine
+            
+            # Validate local path
+            local_safe = sanitize_path(local)
+            if not local_safe or not os.path.exists(local_safe):
+                print(THEME["err"] + "❌ Ungültiger oder nicht existierender lokaler Pfad.")
+                pause()
+                continue
+            
+            cmd = ["scp", "-P", str(port), local_safe, f"{user}@{host}:{remote}"]
             print(THEME["ok"] + "\n→ Upload läuft...\n")
             subprocess.call(cmd)
             pause()
@@ -338,7 +414,34 @@ def ssh_file_transfer_menu():
         elif opt == "2":
             remote = input("Remote Datei: ").strip()
             local = input("Lokaler Pfad: ").strip()
-            cmd = ["scp", "-P", str(port), f"{user}@{host}:{remote}", local]
+            
+            # Note: Remote paths are not validated as users need full access to their own systems
+            # Local path validation prevents directory traversal on this machine
+            
+            # Validate local path
+            local_safe = sanitize_path(local)
+            if not local_safe:
+                print(THEME["err"] + "❌ Ungültiger lokaler Pfad.")
+                pause()
+                continue
+            
+            # Check if parent directory exists and is writable
+            parent_dir = os.path.dirname(local_safe)
+            # Handle case where file is in current directory (parent_dir is empty)
+            if not parent_dir:
+                parent_dir = os.getcwd()
+            
+            if not os.path.exists(parent_dir):
+                print(THEME["err"] + "❌ Übergeordnetes Verzeichnis existiert nicht.")
+                pause()
+                continue
+            
+            if not os.access(parent_dir, os.W_OK):
+                print(THEME["err"] + "❌ Keine Schreibrechte für das Zielverzeichnis.")
+                pause()
+                continue
+            
+            cmd = ["scp", "-P", str(port), f"{user}@{host}:{remote}", local_safe]
             print(THEME["ok"] + "\n→ Download läuft...\n")
             subprocess.call(cmd)
             pause()
@@ -346,7 +449,18 @@ def ssh_file_transfer_menu():
         elif opt == "3":
             local = input("Lokaler Ordner: ").strip()
             remote = input("Remote Ordner: ").strip()
-            cmd = ["scp", "-r", "-P", str(port), local, f"{user}@{host}:{remote}"]
+            
+            # Note: Remote paths are not validated as users need full access to their own systems
+            # Local path validation prevents directory traversal on this machine
+            
+            # Validate local path
+            local_safe = sanitize_path(local)
+            if not local_safe or not os.path.exists(local_safe):
+                print(THEME["err"] + "❌ Ungültiger oder nicht existierender lokaler Pfad.")
+                pause()
+                continue
+            
+            cmd = ["scp", "-r", "-P", str(port), local_safe, f"{user}@{host}:{remote}"]
             print(THEME["ok"] + "\n→ Ordner-Sync (SCP -r) läuft...\n")
             subprocess.call(cmd)
             pause()
@@ -496,6 +610,9 @@ def ssh_generate_ssh_config():
         lines.append("")
     with open(SSH_CONFIG_FILE, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
+    
+    # Set secure permissions on SSH config file
+    set_secure_permissions(SSH_CONFIG_FILE, is_private=True)
 
     print(THEME["ok"] + f"\n✔ SSH Config geschrieben nach: {SSH_CONFIG_FILE}\n")
     pause()

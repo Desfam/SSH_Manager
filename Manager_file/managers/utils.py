@@ -2,6 +2,7 @@
 import json
 import os
 import platform
+import re
 import shutil
 import subprocess
 import time
@@ -10,6 +11,75 @@ from datetime import datetime
 from colorama import init, Fore, Style
 
 init(autoreset=True)
+
+# ---------------------------------------------------------------------
+# Security / Input Validation
+# ---------------------------------------------------------------------
+def validate_port(port_str):
+    """Validate that port is a valid integer between 1-65535."""
+    try:
+        port = int(port_str)
+        return 1 <= port <= 65535
+    except (ValueError, TypeError):
+        return False
+
+
+def validate_hostname(hostname):
+    """Validate hostname/IP format to prevent injection attacks."""
+    if not hostname or len(hostname) > 253:
+        return False
+    # Allow IP addresses and valid hostnames
+    # Block shell metacharacters and dangerous whitespace characters
+    # Note: Normal hostnames/IPs shouldn't have any whitespace
+    if re.search(r'[;&|`$()<>\[\]{}*?\t\n\r\\]', hostname):
+        return False
+    return True
+
+
+def sanitize_path(path):
+    """Basic path sanitization to prevent directory traversal."""
+    # Expand user path safely
+    path = os.path.expanduser(path)
+    # Resolve to absolute path
+    resolved = os.path.abspath(path)
+    
+    # Get user's home directory as a safe base
+    home_dir = os.path.expanduser("~")
+    
+    # On Windows, also check current working directory
+    if os.name == 'nt':
+        cwd = os.getcwd()
+        # Allow paths under home or current working directory
+        try:
+            if os.path.commonpath([resolved, home_dir]) == home_dir:
+                return resolved
+            if os.path.commonpath([resolved, cwd]) == cwd:
+                return resolved
+        except ValueError:
+            # Different drives on Windows - still require it to be under a known safe path
+            # Don't allow arbitrary paths on different drives for security
+            pass
+        return None
+    else:
+        # On Unix, be more restrictive - only allow under home directory
+        try:
+            if os.path.commonpath([resolved, home_dir]) == home_dir:
+                return resolved
+        except ValueError:
+            pass
+        return None
+
+
+def set_secure_permissions(filepath, is_private=True):
+    """Set secure file permissions (Unix-like systems only)."""
+    if os.name != 'nt':  # Not Windows
+        try:
+            if is_private:
+                os.chmod(filepath, 0o600)  # rw-------
+            else:
+                os.chmod(filepath, 0o644)  # rw-r--r--
+        except Exception:
+            pass
 
 # ---------------------------------------------------------------------
 # Pfade / Dateien
@@ -101,10 +171,13 @@ def save_config(cfg):
         backup = CONFIG_PATH + ".bak"
         try:
             shutil.copy2(CONFIG_PATH, backup)
+            set_secure_permissions(backup, is_private=True)
         except Exception:
             pass
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(cfg, f, indent=4, ensure_ascii=False)
+    # Set secure permissions on config file
+    set_secure_permissions(CONFIG_PATH, is_private=True)
 
 
 def get_ssh_cfg():
@@ -208,25 +281,45 @@ def ssh_key_works(entry):
 # ---------------------------------------------------------------------
 def ensure_ssh_dir():
     if not os.path.exists(SSH_DIR):
-        os.makedirs(SSH_DIR, exist_ok=True)
+        os.makedirs(SSH_DIR, mode=0o700, exist_ok=True)
+    else:
+        # Ensure existing directory has secure permissions
+        if os.name != 'nt':  # Not Windows
+            try:
+                os.chmod(SSH_DIR, 0o700)
+            except Exception:
+                pass
 
 
 def ensure_ssh_key():
     ensure_ssh_dir()
     if not os.path.exists(PRIV_KEY):
         print(THEME["info"] + "➡ Kein SSH-Key gefunden – erstelle neuen Ed25519-Key...")
-        subprocess.run([
+        # Use list instead of shell=True for security
+        result = subprocess.run([
             "ssh-keygen",
             "-t", "ed25519",
             "-f", PRIV_KEY,
             "-N", ""
-        ], shell=True)
+        ], capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            print(THEME["err"] + "❌ Fehler beim Erstellen des SSH-Keys:")
+            print(result.stderr)
+            return False
+            
         print(THEME["ok"] + "✔ SSH-Key erzeugt.")
+        # Set secure permissions on private key
+        set_secure_permissions(PRIV_KEY, is_private=True)
     else:
         print(THEME["ok"] + "✔ SSH-Key bereits vorhanden.")
+        # Ensure existing key has secure permissions
+        set_secure_permissions(PRIV_KEY, is_private=True)
     if not os.path.exists(PUB_KEY):
         print(THEME["err"] + "⚠ Public-Key fehlt – irgendwas stimmt nicht mit dem Key-Setup.")
         return False
+    # Set permissions on public key
+    set_secure_permissions(PUB_KEY, is_private=False)
     return True
 
 
