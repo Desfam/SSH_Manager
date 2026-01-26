@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Agent Dashboard{% endblock %}
+
+{% block content %}
+<div class="agent-dashboard">
+    <h2>Agent Management</h2>
+    
+    <div class="section-header">
+        <p>Deploy agents to remote hosts for monitoring and management</p>
+        <button class="btn btn-success" onclick="showDeployAgentModal()">+ Deploy Agent</button>
+    </div>
+    
+    <div class="agents-grid">
+        {% if agents %}
+            {% for agent_id, agent in agents.items() %}
+            <div class="agent-card" data-agent-id="{{ agent_id }}">
+                <div class="card-header">
+                    <h4>{{ agent.connection_name }}</h4>
+                    <span class="badge badge-success">{{ agent.status }}</span>
+                </div>
+                <div class="card-body">
+                    <p><strong>Type:</strong> {{ agent.connection_type|upper }}</p>
+                    <p><strong>Host:</strong> {{ agent.host }}</p>
+                    <p><strong>Deployed:</strong> {{ agent.deployed_at }}</p>
+                    <div class="agent-features">
+                        <strong>Features:</strong>
+                        {% for feature in agent.features %}
+                        <span class="tag">{{ feature }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <button class="btn btn-primary btn-sm" onclick="viewMetrics('{{ agent_id }}')">📊 Metrics</button>
+                    <button class="btn btn-info btn-sm" onclick="browseFiles('{{ agent_id }}')">📁 Files</button>
+                    <button class="btn btn-warning btn-sm" onclick="viewProcesses('{{ agent_id }}')">⚙️ Processes</button>
+                    <button class="btn btn-danger btn-sm" onclick="removeAgent('{{ agent_id }}')">Remove</button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <p>No agents deployed yet.</p>
+                <p>Deploy an agent to a connection to enable monitoring and management features.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Deploy Agent Modal -->
+<div id="deployAgentModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('deployAgentModal')">&times;</span>
+        <h3>Deploy Agent</h3>
+        <form id="deployAgentForm">
+            <div class="form-group">
+                <label>Connection Type</label>
+                <select name="connection_type" id="connectionType" onchange="loadConnections()">
+                    <option value="ssh">SSH</option>
+                    <option value="rdp">RDP</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Connection</label>
+                <select name="connection_name" id="connectionName" required>
+                    <option value="">Select a connection...</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Deploy Agent</button>
+        </form>
+        
+        <div class="info-box">
+            <h4>Manual Installation</h4>
+            <p>To manually install the agent on a remote host:</p>
+            <ol>
+                <li><a href="{{ url_for('agent.download_agent_script') }}">Download the agent script</a></li>
+                <li>Copy it to the remote host</li>
+                <li>Install dependencies: <code>pip install psutil</code></li>
+                <li>Run: <code>python agent.py</code></li>
+            </ol>
+        </div>
+    </div>
+</div>
+
+<!-- Metrics Modal -->
+<div id="metricsModal" class="modal">
+    <div class="modal-content large">
+        <span class="close" onclick="closeModal('metricsModal')">&times;</span>
+        <h3>Performance Metrics</h3>
+        <div id="metricsContent">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h4>CPU Usage</h4>
+                    <div class="metric-value" id="cpuPercent">-</div>
+                    <div class="metric-bar">
+                        <div class="metric-fill" id="cpuBar"></div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <h4>Memory Usage</h4>
+                    <div class="metric-value" id="memoryPercent">-</div>
+                    <div class="metric-bar">
+                        <div class="metric-fill" id="memoryBar"></div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <h4>Disk Usage</h4>
+                    <div class="metric-value" id="diskPercent">-</div>
+                    <div class="metric-bar">
+                        <div class="metric-fill" id="diskBar"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Files Browser Modal -->
+<div id="filesModal" class="modal">
+    <div class="modal-content large">
+        <span class="close" onclick="closeModal('filesModal')">&times;</span>
+        <h3>File Browser</h3>
+        <div id="filesContent">
+            <div class="file-path" id="currentPath">/</div>
+            <div class="file-list" id="fileList">
+                <!-- Files will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Processes Modal -->
+<div id="processesModal" class="modal">
+    <div class="modal-content large">
+        <span class="close" onclick="closeModal('processesModal')">&times;</span>
+        <h3>Running Processes</h3>
+        <div id="processesContent">
+            <table class="data-table" id="processTable">
+                <thead>
+                    <tr>
+                        <th>PID</th>
+                        <th>Name</th>
+                        <th>CPU %</th>
+                        <th>Memory %</th>
+                    </tr>
+                </thead>
+                <tbody id="processTableBody">
+                    <!-- Processes will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/agent.js') }}"></script>
+{% endblock %}

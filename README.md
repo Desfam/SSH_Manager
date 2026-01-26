@@ -36,11 +36,13 @@ By using this software, the user acknowledges and accepts this disclaimer and al
 
 
 🗝 SSH & RDP Manager PRO
-Central Terminal-Based Manager for SSH & RDP Connections (Windows)
+Central Manager for SSH & RDP Connections with Web Interface
 
-SSH & RDP Manager PRO is a powerful interactive console tool for managing SSH and RDP hosts, automating connections, transferring files, running remote commands, monitoring system health, sending Wake-on-LAN packets, generating SSH configs, and more.
+SSH & RDP Manager PRO is a powerful tool for managing SSH and RDP hosts, available in two modes:
+1. **Terminal Interface** - Interactive console tool for Windows with colored output
+2. **Web Interface** - Modern browser-based dashboard with agent deployment system
 
-Everything is handled through a modern menu interface with colored output and persistent JSON configuration.
+Manage connections, automate tasks, transfer files, run remote commands, monitor system health, deploy monitoring agents, and more!
 
 📌 Features
 🟦 SSH Management
@@ -158,8 +160,10 @@ The JSON structure looks like:
 }
 
 🚀 Running the Program
+
+## Terminal Interface (Windows)
 Start application
-python main.py
+python Manager_file/main.py
 
 Startup sequence
 
@@ -173,7 +177,27 @@ Status bar shows favorite server health
 
 Main menu opens
 
+## Web Interface (Cross-Platform)
+Start web server
+python start_web_server.py
+
+Or directly:
+python -m web_server.app
+
+Access the web interface at:
+http://localhost:5000
+
+Default credentials:
+- Username: admin
+- Password: admin
+
+⚠️ **Important:** Change the default password after first login!
+
+For detailed web interface documentation, see `web_server/README.md`
+
 🔧 Requirements
+
+## Terminal Interface (Windows)
 
 Windows 10/11
 
@@ -189,7 +213,26 @@ PowerShell (built-in)
 
 Python packages:
 
-pip install colorama
+pip install colorama keyring
+
+## Web Interface (Cross-Platform)
+
+Python 3.9+
+
+Any modern web browser
+
+Python packages:
+
+pip install -r requirements.txt
+
+Required packages:
+- flask
+- flask-socketio
+- flask-login
+- paramiko
+- psutil
+- werkzeug
+- python-socketio
 
 🧩 Main Modules Overview
 main.py
